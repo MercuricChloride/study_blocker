@@ -71,7 +71,7 @@ impl eframe::App for StudyBlocker {
         ctx.request_repaint_after(Duration::new(0, 100_000_000)); // 100ms
 
         // if we are blocking and the time elapsed is greater than the length of study, unblock
-        if *blocking && *length_of_study != 0 && time_elapsed > *length_of_study {
+        if *blocking && *length_of_study != 0 && time_elapsed > (*length_of_study * 3600) {
             unblock_domains();
             *blocking = false;
         }
@@ -84,36 +84,45 @@ impl eframe::App for StudyBlocker {
             // if we don't have access to the hosts file, show a message
             if !*root {
                 ui.heading("You do not have access to the hosts file. Please run as root.");
+                return;
+            }
+
+            // Length of study slider & domain input field
+            // only show if we are not blocking
+            if !*blocking {
+                // length of study input
+                ui.label("Duration of Study");
+                ui.add(egui::Slider::new(length_of_study, 0..=24).text("Hours"));
+
+                // domain input
+                ui.label("Domains to Block");
+                ui.text_edit_multiline(domains);
             } else {
-                // Length of study slider & domain input field
-                // only show if we are not blocking
-                if !*blocking {
-                    // length of study input
-                    ui.label("Duration of Study");
-                    ui.add(egui::Slider::new(length_of_study, 0..=24).text("Hours"));
-
-                    // domain input
-                    ui.label("Domains to Block");
-                    ui.text_edit_multiline(domains);
+                // otherwise show the time left
+                // length of study in seconds - time elapsed in seconds
+                let time_left = (*length_of_study * 3600) - time_elapsed;
+                if time_left < 60 {
+                    ui.label(format!("Time Left: {} Seconds", time_left));
+                } else if time_left < 3600 {
+                    ui.label(format!("Time Left: {} Minutes", time_left / 60));
                 } else {
-                    // otherwise show the time left
-                    let time_left = *length_of_study - time_elapsed;
-                    ui.label(format!("Time Left: {} minutes", time_left));
+                    ui.label(format!("Time Left: {} Hours", time_left / 3600));
                 }
+                // ui.label(format!("Time Left: {} Hours", time_left));
+            }
 
-                ui.separator();
+            ui.separator();
 
-                if *blocking {
-                    if ui.button("Unblock Domains").clicked() {
-                        unblock_domains();
-                        *blocking = false;
-                    }
-                } else {
-                    if ui.button("Block Domains").clicked() {
-                        block_domains(domains.to_owned(), blocking);
-                        *start_time = SystemTime::now();
-                        *blocking = true;
-                    }
+            if *blocking {
+                if ui.button("Unblock Domains").clicked() {
+                    unblock_domains();
+                    *blocking = false;
+                }
+            } else {
+                if ui.button("Block Domains").clicked() {
+                    block_domains(domains.to_owned(), blocking);
+                    *start_time = SystemTime::now();
+                    *blocking = true;
                 }
             }
         });

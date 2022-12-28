@@ -4,7 +4,7 @@ pub fn block_domains(domains: String, blocking: &bool) {
     // general plan here is to split domains into a vector of strings
     let split_domains = domains
         .split("\n")
-        .map(|item| item.trim().to_owned())
+        .map(|item| item.replace("www.", "").trim().to_owned())
         .collect::<Vec<String>>();
 
     // if the user is blocking, we don't want to copy the hosts file, we just want to write to it
@@ -16,7 +16,7 @@ pub fn block_domains(domains: String, blocking: &bool) {
 
     // then for each domain we will format the string to be added to the hosts file
     for domain in split_domains {
-        let formatted_domain = format!("\n127.0.0.1 {}\n:: {}", domain, domain);
+        let formatted_domain = format!("\n127.0.0.1 {} www.{}\n:: {}", domain, domain, domain);
 
         hosts.push_str(&formatted_domain)
     }
@@ -27,4 +27,8 @@ pub fn block_domains(domains: String, blocking: &bool) {
 
 pub fn unblock_domains() {
     copy("/etc/hosts.bak", "/etc/hosts").expect("Failed to restore hosts file");
+}
+
+pub fn has_host_access() -> bool {
+    copy("/etc/hosts", "/etc/hosts").is_ok()
 }

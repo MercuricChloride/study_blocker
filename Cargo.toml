@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 eframe = { version="0.20.1", features = ["persistence", "serde"] }
+
+serde = { version = "1", features = ["derive"] }

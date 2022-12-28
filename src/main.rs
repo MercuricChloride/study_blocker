@@ -20,6 +20,7 @@ struct StudyBlocker {
     domains: String,
     length_of_study: u32,
     start_time: u32,
+    blocking: bool, // we are going to use this to determine if we are blocking or not, so we can not copy a blocked hosts file
 }
 
 impl Default for StudyBlocker {
@@ -28,6 +29,7 @@ impl Default for StudyBlocker {
             domains: String::new(),
             length_of_study: 0,
             start_time: 0,
+            blocking: false,
         }
     }
 }
@@ -57,6 +59,7 @@ impl eframe::App for StudyBlocker {
             domains,
             length_of_study,
             start_time,
+            blocking,
         } = self;
 
         let split_domains: Vec<String> = domains.split("\n").map(|item| item.to_owned()).collect();
@@ -74,11 +77,13 @@ impl eframe::App for StudyBlocker {
 
             ui.horizontal(|ui| {
                 if ui.button("Block Domains").clicked() {
-                    block_domains(domains.to_owned());
+                    block_domains(domains.to_owned(), blocking);
+                    *blocking = true;
                 }
 
                 if ui.button("Unblock Domains").clicked() {
                     unblock_domains();
+                    *blocking = false;
                 }
             });
 

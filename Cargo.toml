@@ -11,3 +11,7 @@ license = "GPL-3.0-or-later"
 eframe = { version="0.20.1", features = ["persistence", "serde"] }
 
 serde = { version = "1", features = ["derive"] }
+
+[package.metadata.bundle]
+name = "Study Blocker"
+identifier = "com.study.blocker"

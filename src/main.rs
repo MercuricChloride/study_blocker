@@ -1,8 +1,11 @@
-mod blocking;
+mod helpers;
 
 use std::time::{Duration, SystemTime};
 
-use blocking::{block_domains, has_host_access, unblock_domains};
+use helpers::{
+    display_block_button, display_config_or_remaining_time, get_time_elapsed, has_host_access,
+    should_unblock, unblock_domains,
+};
 
 use eframe::egui;
 
@@ -24,7 +27,7 @@ struct StudyBlocker {
     start_time: SystemTime,
     blocking: bool, // we are going to use this to determine if we are blocking or not, so we can not copy a blocked hosts file
     #[serde(skip)] // we don't want to save this field
-    root: bool, // we are going to use this to determine if we are running as root or not
+    has_host_access: bool, // we are going to use this to determine if we are running as root or not
 }
 
 impl Default for StudyBlocker {
@@ -34,7 +37,7 @@ impl Default for StudyBlocker {
             length_of_study: 0,
             start_time: SystemTime::now(),
             blocking: false,
-            root: has_host_access(),
+            has_host_access: has_host_access(),
         }
     }
 }
@@ -60,18 +63,15 @@ impl eframe::App for StudyBlocker {
             length_of_study,
             start_time,
             blocking,
-            root,
+            has_host_access,
         } = self;
 
-        let time_elapsed = SystemTime::now()
-            .duration_since(*start_time)
-            .unwrap()
-            .as_secs();
+        let time_elapsed = get_time_elapsed(start_time);
 
         ctx.request_repaint_after(Duration::new(0, 100_000_000)); // 100ms
 
         // if we are blocking and the time elapsed is greater than the length of study, unblock
-        if *blocking && *length_of_study != 0 && time_elapsed > (*length_of_study * 3600) {
+        if should_unblock(start_time, &length_of_study, &blocking) {
             unblock_domains();
             *blocking = false;
         }
@@ -82,49 +82,16 @@ impl eframe::App for StudyBlocker {
             ui.separator();
 
             // if we don't have access to the hosts file, show a message
-            if !*root {
+            if !*has_host_access {
                 ui.heading("You do not have access to the hosts file. Please run as root.");
                 return;
             }
 
-            // Length of study slider & domain input field
-            // only show if we are not blocking
-            if !*blocking {
-                // length of study input
-                ui.label("Duration of Study");
-                ui.add(egui::Slider::new(length_of_study, 0..=24).text("Hours"));
-
-                // domain input
-                ui.label("Domains to Block");
-                ui.text_edit_multiline(domains);
-            } else {
-                // otherwise show the time left
-                // length of study in seconds - time elapsed in seconds
-                let time_left = (*length_of_study * 3600) - time_elapsed;
-                if time_left < 60 {
-                    ui.label(format!("Time Left: {} Seconds", time_left));
-                } else if time_left < 3600 {
-                    ui.label(format!("Time Left: {} Minutes", time_left / 60));
-                } else {
-                    ui.label(format!("Time Left: {} Hours", time_left / 3600));
-                }
-                // ui.label(format!("Time Left: {} Hours", time_left));
-            }
+            display_config_or_remaining_time(ui, time_elapsed, length_of_study, domains, blocking);
 
             ui.separator();
 
-            if *blocking {
-                if ui.button("Unblock Domains").clicked() {
-                    unblock_domains();
-                    *blocking = false;
-                }
-            } else {
-                if ui.button("Block Domains").clicked() {
-                    block_domains(domains.to_owned(), blocking);
-                    *start_time = SystemTime::now();
-                    *blocking = true;
-                }
-            }
+            display_block_button(blocking, ui, domains, start_time);
         });
     }
 }

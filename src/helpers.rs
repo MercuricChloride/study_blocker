@@ -1,5 +1,5 @@
 use std::{
-    fs::{copy, read_to_string, rename, write},
+    fs::{read_to_string, rename, write},
     time::SystemTime,
 };
 
@@ -32,7 +32,7 @@ pub fn unblock_domains() {
 }
 
 pub fn has_host_access() -> bool {
-    copy("/etc/hosts", "/etc/hosts").is_ok()
+    rename("/etc/hosts", "/etc/hosts").is_ok()
 }
 
 pub fn get_time_elapsed(start_time: &SystemTime) -> u64 {

@@ -5,7 +5,7 @@ use std::{
 
 use eframe::egui;
 
-pub fn block_domains(domains: String, blocking: &bool) {
+pub fn block_domains(domains: String) {
     // general plan here is to split domains into a vector of strings
     let split_domains = domains
         .split("\n")
@@ -14,10 +14,7 @@ pub fn block_domains(domains: String, blocking: &bool) {
 
     let mut hosts = read_to_string("/etc/hosts").expect("Failed to read hosts file");
 
-    // if the user is blocking, we don't want to copy the hosts file, we just want to write to it
-    if !blocking {
-        write("/etc/hosts.bak", &hosts).expect("Failed to backup hosts file");
-    }
+    write("/etc/hosts.bak", &hosts).expect("Failed to backup hosts file");
 
     // then for each domain we will format the string to be added to the hosts file
     for domain in split_domains {
@@ -93,7 +90,7 @@ pub fn display_block_button(
         }
     } else {
         if ui.button("Block Domains").clicked() {
-            block_domains(domains.to_owned(), blocking);
+            block_domains(domains.to_owned());
             *start_time = SystemTime::now();
             *blocking = true;
         }

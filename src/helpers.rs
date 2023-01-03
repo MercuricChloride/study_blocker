@@ -1,5 +1,5 @@
 use std::{
-    fs::{copy, read_to_string, write},
+    fs::{copy, read_to_string, rename, write},
     time::SystemTime,
 };
 
@@ -12,12 +12,12 @@ pub fn block_domains(domains: String, blocking: &bool) {
         .map(|item| item.replace("www.", "").trim().to_owned())
         .collect::<Vec<String>>();
 
+    let mut hosts = read_to_string("/etc/hosts").expect("Failed to read hosts file");
+
     // if the user is blocking, we don't want to copy the hosts file, we just want to write to it
     if !blocking {
-        copy("/etc/hosts", "/etc/hosts.bak").expect("Failed to backup hosts file");
+        write("/etc/hosts.bak", &hosts).expect("Failed to backup hosts file");
     }
-
-    let mut hosts = read_to_string("/etc/hosts").expect("Failed to read hosts file");
 
     // then for each domain we will format the string to be added to the hosts file
     for domain in split_domains {
@@ -31,7 +31,7 @@ pub fn block_domains(domains: String, blocking: &bool) {
 }
 
 pub fn unblock_domains() {
-    copy("/etc/hosts.bak", "/etc/hosts").expect("Failed to restore hosts file");
+    rename("/etc/hosts.bak", "/etc/hosts").expect("Failed to restore hosts file");
 }
 
 pub fn has_host_access() -> bool {
